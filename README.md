@@ -12,7 +12,7 @@ https://github.community/t/support-theme-context-for-images-in-light-vs-dark-mod
 
 EXCLUDED: MorganKryze/github-stats
 
-EXCLUDED_LANGS: jupyter,c,c++,cmake,swift,kotlin,css,javascript,html,objective-c
+EXCLUDED_LANGS: jupyter notebook,c,c++,cmake,swift,kotlin,css,javascript,html,objective-c
 
 ## Background
 
