@@ -9,8 +9,10 @@ https://github.community/t/support-theme-context-for-images-in-light-vs-dark-mod
 <img src="https://github.com/jstrieb/github-stats/blob/master/generated/overview.svg#gh-light-mode-only" />
 <img src="https://github.com/jstrieb/github-stats/blob/master/generated/languages.svg#gh-light-mode-only" />
 </a>
+
 EXCLUDED: MorganKryze/github-stats
-EXCLUDED_LANGS: jupyter_notebook,c,c++,cmake,swift,kotlin,css,javascript
+
+EXCLUDED_LANGS: jupyter,c,c++,cmake,swift,kotlin,css,javascript,html,objective-c
 
 ## Background
 
