@@ -41,7 +41,7 @@ read private repositories, it may leak details about those repositories in
 error messages. For example, the `aiohttp` library—used for asynchronous API
 requests—may include the requested URL in exceptions, which can leak the name
 of private repositories. If there is an exception caused by `aiohttp`, this
-exception will be viewable in the Actions tab of the repository fork, and
+exception will be viewable in the Actions tab of the repository, and
 anyone may be able to see the name of one or more private repositories.
 
 Due to some issues with the GitHub statistics API, there are some situations
