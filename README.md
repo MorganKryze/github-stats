@@ -16,7 +16,7 @@ https://github.community/t/support-theme-context-for-images-in-light-vs-dark-mod
 <img src="https://raw.githubusercontent.com/MorganKryze/github-stats/master/generated/languages.svg" />
 </a>
 
-EXCLUDED: MorganKryze/github-stats,MorganKryze/Fyre
+EXCLUDED: MorganKryze/github-stats,MorganKryze/Fyre,DeVinci-FabLab/MyFab
 
 EXCLUDED_LANGS: Jupyter Notebook,jupyter notebook,c,c++,cmake,swift,css,objective-c
 
