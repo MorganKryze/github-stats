@@ -18,7 +18,7 @@ https://github.community/t/support-theme-context-for-images-in-light-vs-dark-mod
 
 EXCLUDED: MorganKryze/github-stats,MorganKryze/Fyre,DeVinci-FabLab/MyFab
 
-EXCLUDED_LANGS: Jupyter Notebook,jupyter notebook,c,c++,cmake,swift,css,objective-c
+EXCLUDED_LANGS: Jupyter Notebook,jupyter notebook,c,c++,cmake,swift,css,objective-c,javascript
 
 ## Background
 
