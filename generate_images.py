@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# generate_images.py
 
 import asyncio
 import os
@@ -8,30 +9,20 @@ import aiohttp
 
 from github_stats import Stats
 
-
-################################################################################
-# Helper Functions
-################################################################################
+# Safety caps so CI cannot hang forever.
+HTTP_CONNECT_TIMEOUT_SECONDS = int(os.getenv("HTTP_CONNECT_TIMEOUT_SECONDS", "15"))
+HTTP_READ_TIMEOUT_SECONDS = int(os.getenv("HTTP_READ_TIMEOUT_SECONDS", "60"))
+TOTAL_RUN_TIMEOUT_SECONDS = int(os.getenv("TOTAL_RUN_TIMEOUT_SECONDS", "900"))  # 15m
 
 
 def generate_output_folder() -> None:
-    """
-    Create the output folder if it does not already exist
-    """
+    """Create the output folder if it does not already exist."""
     if not os.path.isdir("generated"):
         os.mkdir("generated")
 
 
-################################################################################
-# Individual Image Generation Functions
-################################################################################
-
-
 async def generate_overview(s: Stats) -> None:
-    """
-    Generate an SVG badge with summary statistics
-    :param s: Represents user's GitHub statistics
-    """
+    """Generate an SVG badge with summary statistics."""
     with open("templates/overview.svg", "r") as f:
         output = f.read()
 
@@ -50,10 +41,7 @@ async def generate_overview(s: Stats) -> None:
 
 
 async def generate_languages(s: Stats) -> None:
-    """
-    Generate an SVG badge with summary languages used
-    :param s: Represents user's GitHub statistics
-    """
+    """Generate an SVG badge with summary languages used."""
     with open("templates/languages.svg", "r") as f:
         output = f.read()
 
@@ -64,8 +52,7 @@ async def generate_languages(s: Stats) -> None:
     )
     delay_between = 150
     for i, (lang, data) in enumerate(sorted_languages):
-        color = data.get("color")
-        color = color if color is not None else "#000000"
+        color = data.get("color") or "#000000"
         progress += (
             f'<span style="background-color: {color};'
             f'width: {data.get("prop", 0):0.3f}%;" '
@@ -90,37 +77,42 @@ fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8z"></path></svg>
         f.write(output)
 
 
-################################################################################
-# Main Function
-################################################################################
-
-
-async def main() -> None:
-    """
-    Generate all badges
-    """
-    access_token = os.getenv("ACCESS_TOKEN")
+async def run_generation() -> None:
+    """Generate all badges with bounded network behavior."""
+    access_token = os.getenv("ACCESS_TOKEN") or os.getenv("GITHUB_TOKEN")
     if not access_token:
-        # access_token = os.getenv("GITHUB_TOKEN")
-        raise Exception("A personal access token is required to proceed!")
+        raise RuntimeError(
+            "A personal access token is required. Set ACCESS_TOKEN or GITHUB_TOKEN."
+        )
+
     user = os.getenv("GITHUB_ACTOR")
-    if user is None:
+    if not user:
         raise RuntimeError("Environment variable GITHUB_ACTOR must be set.")
+
     exclude_repos = os.getenv("EXCLUDED")
     excluded_repos = (
         {x.strip() for x in exclude_repos.split(",")} if exclude_repos else None
     )
+
     exclude_langs = os.getenv("EXCLUDED_LANGS")
     excluded_langs = (
         {x.strip() for x in exclude_langs.split(",")} if exclude_langs else None
     )
-    # Convert a truthy value to a Boolean
+
     raw_ignore_forked_repos = os.getenv("EXCLUDE_FORKED_REPOS")
     ignore_forked_repos = (
-        not not raw_ignore_forked_repos
+        bool(raw_ignore_forked_repos)
         and raw_ignore_forked_repos.strip().lower() != "false"
     )
-    async with aiohttp.ClientSession() as session:
+
+    timeout = aiohttp.ClientTimeout(
+        total=HTTP_READ_TIMEOUT_SECONDS,
+        connect=HTTP_CONNECT_TIMEOUT_SECONDS,
+        sock_connect=HTTP_CONNECT_TIMEOUT_SECONDS,
+        sock_read=HTTP_READ_TIMEOUT_SECONDS,
+    )
+
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         s = Stats(
             user,
             access_token,
@@ -130,6 +122,16 @@ async def main() -> None:
             ignore_forked_repos=ignore_forked_repos,
         )
         await asyncio.gather(generate_languages(s), generate_overview(s))
+
+
+async def main() -> None:
+    try:
+        await asyncio.wait_for(run_generation(), timeout=TOTAL_RUN_TIMEOUT_SECONDS)
+    except asyncio.TimeoutError as exc:
+        raise RuntimeError(
+            f"Generation timed out after {TOTAL_RUN_TIMEOUT_SECONDS}s. "
+            "Likely stuck retrying GitHub 202 responses."
+        ) from exc
 
 
 if __name__ == "__main__":
