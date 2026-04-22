@@ -28,7 +28,7 @@ class Queries(object):
         access_token: str,
         session: aiohttp.ClientSession,
         max_connections: int = 10,
-        rest_max_retries: int = 12,
+        rest_max_retries: int = 5,
         rest_base_delay_seconds: float = 1.0,
         rest_max_delay_seconds: float = 20.0,
     ):
@@ -484,26 +484,26 @@ Languages:
         if self._lines_changed is not None:
             return self._lines_changed
 
-        additions = 0
-        deletions = 0
-        for repo in await self.repos:
+        async def fetch(repo: str) -> Tuple[int, int]:
             r = await self.queries.query_rest(f"/repos/{repo}/stats/contributors")
             if not isinstance(r, list):
-                continue
-
+                return 0, 0
+            a = d = 0
             for author_obj in r:
-                if not isinstance(author_obj, dict) or not isinstance(
-                    author_obj.get("author", {}), dict
-                ):
+                if not isinstance(author_obj, dict):
                     continue
-
-                author = author_obj.get("author", {}).get("login", "")
-                if author != self.username:
+                author = author_obj.get("author") or {}
+                if not isinstance(author, dict) or author.get("login") != self.username:
                     continue
-
                 for week in author_obj.get("weeks", []):
-                    additions += week.get("a", 0)
-                    deletions += week.get("d", 0)
+                    a += week.get("a", 0)
+                    d += week.get("d", 0)
+            return a, d
+
+        repos = await self.repos
+        results = await asyncio.gather(*(fetch(r) for r in repos))
+        additions = sum(x[0] for x in results)
+        deletions = sum(x[1] for x in results)
 
         self._lines_changed = (additions, deletions)
         return self._lines_changed
@@ -513,13 +513,15 @@ Languages:
         if self._views is not None:
             return self._views
 
-        total = 0
-        for repo in await self.repos:
+        async def fetch(repo: str) -> int:
             r = await self.queries.query_rest(f"/repos/{repo}/traffic/views")
             if not isinstance(r, dict):
-                continue
-            for view in r.get("views", []):
-                total += view.get("count", 0)
+                return 0
+            return sum(view.get("count", 0) for view in r.get("views", []))
+
+        repos = await self.repos
+        counts = await asyncio.gather(*(fetch(r) for r in repos))
+        total = sum(counts)
 
         self._views = total
         return total
